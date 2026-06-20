@@ -184,8 +184,8 @@
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 220px;
-  height: 220px;
+  width: 280px;
+  height: 280px;
   border: 2px solid rgba(255,255,255,0.5);
   border-radius: 12px;
   pointer-events: none;
@@ -194,30 +194,11 @@
 
 .prov-scanner {
   width: 100%;
+  display: block;
+  border-radius: 12px;
+  /* object-fit: cover; */
+  object-fit: contain;
 }
-
-/* Html5Qrcode styling resets */
-#qr-scan-region {
-  border: none !important;
-}
-#qr-scan-region button {
-  background: var(--surface-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: 6px;
-  margin: 10px;
-  cursor: pointer;
-}
-#qr-scan-region select {
-  background: var(--surface-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  padding: 8px;
-  border-radius: 6px;
-  margin: 10px;
-}
-#qr-scan-region a { display: none !important; }
 
 /* ---- Preview Banner ---- */
 .prov-match-banner {

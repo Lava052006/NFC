@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from "firebase/firestore";
-import { Html5Qrcode } from "html5-qrcode";
+import jsQR from "jsqr";
 import { db } from "../lib/firebase";
 import "./Provision.css";
 
 const STAFF_PASSWORD = import.meta.env.VITE_STAFF_PASSWORD || "changeme";
 const BASE_URL = import.meta.env.VITE_APP_BASE_URL || window.location.origin;
-const QR_REGION_ID = "qr-scan-region";
 
 const STEP_SCAN = "scan";
 const STEP_CONFIRM_OVERWRITE = "confirm_overwrite";
@@ -21,12 +20,12 @@ export default function Provision() {
   const [step, setStep] = useState(STEP_SCAN);
   const [scanError, setScanError] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [matchedDoc, setMatchedDoc] = useState(null); // { id, data, writeUrl }
+  const [matchedDoc, setMatchedDoc] = useState(null);
   const [nfcSupported] = useState(() => typeof window !== "undefined" && "NDEFReader" in window);
   const [nfcError, setNfcError] = useState("");
   const [nfcListening, setNfcListening] = useState(false);
 
-  const scannerRef = useRef(null);
+  const videoRef = useRef(null);
   const abortControllerRef = useRef(null);
 
   /* ---- Auth ---- */
@@ -45,12 +44,10 @@ export default function Provision() {
     setScanError("");
     setLookupLoading(true);
     try {
-      // Expecting JSON: {"id":"EVT-A3K9MZ","type":"participant","v":1}
       let payload;
       try {
         payload = JSON.parse(qrText);
       } catch (err) {
-        // Fallback if it's just the old raw ID
         payload = { id: qrText.trim(), type: "participant", v: 1 };
       }
 
@@ -68,13 +65,11 @@ export default function Provision() {
 
       const docSnap = snap.docs[0];
       const data = docSnap.data();
-      
-      // Determine what URL gets written
+
       let writeUrl = "";
       if (data.type === "exhibitor") {
         writeUrl = data.website || data.brochureUrl || "";
       } else {
-        // Participant -> profile page link
         writeUrl = `${BASE_URL}/p/${data.registrationId}`;
       }
 
@@ -93,41 +88,129 @@ export default function Provision() {
     }
   }, []);
 
-  /* ---- QR scanner setup ---- */
+  /* ---- QR scanner setup (optimized) ---- */
   useEffect(() => {
     if (!authed || step !== STEP_SCAN) return;
 
-    const scanner = new Html5Qrcode(QR_REGION_ID);
-    scannerRef.current = scanner;
-    let isRunning = true;
+    let active = true;
+    let scanInterval = null;
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
 
-    scanner
-      .start(
-        { facingMode: "environment" },
-        {
-          fps: 15,
-          qrbox: { width: 250, height: 250 },
-          useBarCodeDetector: true,
-        },
-        (decodedText) => {
-          if (!isRunning) return;
-          isRunning = false;
-          scanner.stop().catch(() => {});
-          handleQrDecoded(decodedText.trim());
-        },
-        () => {
-          // ignore scan failures per frame
+    async function startScanner() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 }, // Higher res for better QR detection
+            height: { ideal: 720 },
+          },
+        });
+        if (!active) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
         }
-      )
-      .catch((err) => {
+
+        videoEl.srcObject = stream;
+        await videoEl.play();
+        console.log(
+          "Camera resolution:",
+          videoEl.videoWidth,
+          "x",
+          videoEl.videoHeight
+        );
+
+        // Create canvas once
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", {
+          willReadFrequently: true,
+        });
+
+        let barcodeDetector = null;
+        let useBarcodeDetector = false;
+
+        if ("BarcodeDetector" in window) {
+          try {
+            barcodeDetector = new BarcodeDetector({ formats: ["qr_code"] });
+            useBarcodeDetector = true;
+            console.log("BarcodeDetector available and ready");
+          } catch (err) {
+            console.log("BarcodeDetector available but QR format not supported, falling back to jsQR");
+          }
+        } else {
+          console.log("BarcodeDetector not available, using jsQR");
+        }
+
+        // Faster scan interval - 30ms = ~33 scans/sec
+        // For jsQR fallback, use a smaller canvas to reduce processing
+        // QR codes can be detected reliably at 320x240 resolution
+        const processingCanvas = document.createElement("canvas");
+        processingCanvas.width = 320;
+        processingCanvas.height = 240;
+        const processingCtx = processingCanvas.getContext("2d", {
+          willReadFrequently: true,
+        });
+
+        scanInterval = setInterval(async () => {
+          if (!active || videoEl.readyState < 2) return;
+
+          try {
+            let decodedText = null;
+
+            if (useBarcodeDetector && barcodeDetector) {
+              try {
+                canvas.width = videoEl.videoWidth;
+                canvas.height = videoEl.videoHeight;
+                ctx.drawImage(videoEl, 0, 0);
+
+                const barcodes = await barcodeDetector.detect(canvas);
+                if (barcodes.length > 0 && barcodes[0].rawValue) {
+                  decodedText = barcodes[0].rawValue;
+                }
+              } catch (err) {
+                // BarcodeDetector failed this frame, fall back to jsQR
+                console.log("BarcodeDetector failed, trying jsQR");
+                useBarcodeDetector = false;
+              }
+            }
+
+            // If BarcodeDetector didn't find anything, try jsQR with downsampled canvas
+            if (!decodedText && !useBarcodeDetector) {
+              processingCtx.drawImage(videoEl, 0, 0, 320, 240);
+              const imageData = processingCtx.getImageData(0, 0, 320, 240);
+              const code = jsQR(imageData.data, 320, 240);
+              if (code?.data) {
+                decodedText = code.data;
+              }
+            }
+
+            if (decodedText && active) {
+              active = false;
+              clearInterval(scanInterval);
+              stream.getTracks().forEach((t) => t.stop());
+              handleQrDecoded(decodedText.trim());
+            }
+          } catch (err) {
+            // Frame processing error, try next frame
+            console.error("Scan error:", err);
+          }
+        }, 30); // 30ms interval for ~33 fps scanning
+
+      } catch (err) {
         console.error(err);
-        setScanError("Couldn't access the camera. Check camera permissions for this site and reload.");
-      });
+        if (active) {
+          setScanError("Couldn't access the camera. Check camera permissions for this site and reload.");
+        }
+      }
+    }
+
+    startScanner();
 
     return () => {
-      isRunning = false;
-      if (scanner.isScanning) {
-        scanner.stop().catch(() => {});
+      active = false;
+      if (scanInterval) clearInterval(scanInterval);
+      if (videoEl && videoEl.srcObject) {
+        videoEl.srcObject.getTracks().forEach((t) => t.stop());
       }
     };
   }, [authed, step, handleQrDecoded]);
@@ -171,19 +254,13 @@ export default function Provision() {
 
       // eslint-disable-next-line no-undef
       const ndef = new NDEFReader();
-      
       setNfcListening(true);
-      
-      // We will listen for a tap, and write the NDEF URI record.
-      // write() handles waiting for a tag. We can call write() directly.
+
       await ndef.write({
         records: [{ recordType: "url", data: matchedDoc.writeUrl }]
       }, { signal: controller.signal });
 
-      // We successfully wrote. Wait, write() resolves when write is successful!
       setNfcListening(false);
-      // We do not have the serialNumber from write() directly in some implementations, 
-      // but let's assign anyway.
       assignChip("written_by_web_nfc");
 
     } catch (err) {
@@ -200,7 +277,6 @@ export default function Provision() {
   useEffect(() => {
     if (step !== STEP_TAP || !nfcSupported) return;
 
-    // Auto-start NFC listening when arriving at TAP step and NFC is supported
     startNfcWrite();
 
     return () => {
@@ -211,7 +287,6 @@ export default function Provision() {
   }, [step, nfcSupported, startNfcWrite]);
 
   function handleManualConfirm() {
-    // For iOS/Desktop fallback using NFC Tools app
     assignChip("manual_fallback");
   }
 
@@ -281,7 +356,7 @@ export default function Provision() {
             <span className="prov-write-preview-label">Will write NDEF URI:</span>
             <code className="prov-write-preview-url">{matchedDoc?.writeUrl}</code>
             <p className="prov-write-preview-hint">
-              {isExhibitor 
+              {isExhibitor
                 ? "When tapped, chip will directly open this exhibitor's website."
                 : "When tapped, chip will open their digital profile card."}
             </p>
@@ -309,7 +384,7 @@ export default function Provision() {
               ) : (
                 <div className="prov-manual-fallback">
                   <div className="prov-alert prov-alert--warning">
-                    <strong>Web NFC not supported</strong><br/>
+                    <strong>Web NFC not supported</strong><br />
                     Open <b>NFC Tools</b> app, select "Write", "Add a record", "URL/URI", and paste the link below.
                   </div>
                   <button className="prov-btn prov-btn--secondary" onClick={() => {
@@ -317,7 +392,7 @@ export default function Provision() {
                   }}>
                     Copy URL
                   </button>
-                  <button className="prov-btn prov-btn--primary" onClick={handleManualConfirm} style={{marginTop: 10}}>
+                  <button className="prov-btn prov-btn--primary" onClick={handleManualConfirm} style={{ marginTop: 10 }}>
                     Mark as Written Manually
                   </button>
                 </div>
@@ -339,7 +414,7 @@ export default function Provision() {
         <p className="prov-sub">Point camera at attendee's QR to retrieve their profile.</p>
 
         <div className="prov-scanner-wrap">
-          <div id={QR_REGION_ID} className="prov-scanner" />
+          <video ref={videoRef} className="prov-scanner" playsInline autoPlay muted />
         </div>
 
         {lookupLoading && <div className="prov-loading">Looking up…</div>}
