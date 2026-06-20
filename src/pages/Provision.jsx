@@ -104,7 +104,11 @@ export default function Provision() {
     scanner
       .start(
         { facingMode: "environment" },
-        { fps: 10 },
+        {
+          fps: 15,
+          qrbox: { width: 250, height: 250 },
+          useBarCodeDetector: true,
+        },
         (decodedText) => {
           if (!isRunning) return;
           isRunning = false;
