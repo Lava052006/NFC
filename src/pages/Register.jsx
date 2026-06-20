@@ -184,7 +184,7 @@ export default function Register({ type }) {
                   size={200}
                   bgColor="#ffffff"
                   fgColor="#0a0d14"
-                  level="M"
+                  level="L"
                   includeMargin={false}
                 />
               </div>
