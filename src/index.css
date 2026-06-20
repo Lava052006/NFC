@@ -1,69 +1,207 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
+/* ============================================
+   DESIGN TOKENS
+   ============================================ */
 :root {
-  /* Color tokens */
-  --ink: #14171f;
-  --ink-soft: #4a4f5c;
-  --paper: #f7f6f2;
-  --paper-raised: #ffffff;
-  --line: #e1ddd3;
-  --evergreen: #2e5e4e;
-  --evergreen-dark: #234a3d;
-  --evergreen-tint: #e7efe9;
-  --amber: #c8782b;
-  --amber-tint: #f7ead9;
-  --red: #b3261e;
-  --red-tint: #f8e4e2;
+  /* Core palette */
+  --bg:           #0a0d14;
+  --bg-2:         #0f1320;
+  --bg-3:         #141927;
+  --surface:      #1a2035;
+  --surface-2:    #1f2640;
+  --border:       rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
 
-  /* Type */
-  --font-ui: "Inter", system-ui, sans-serif;
+  /* Text */
+  --text:         #f0f2f8;
+  --text-muted:   #8892a4;
+  --text-subtle:  #4e586c;
+
+  /* Brand — Indigo/violet gradient */
+  --brand:        #6366f1;
+  --brand-2:      #818cf8;
+  --brand-dark:   #4f46e5;
+  --brand-glow:   rgba(99, 102, 241, 0.25);
+  --brand-tint:   rgba(99, 102, 241, 0.10);
+
+  /* Participant accent — Cyan */
+  --participant:       #22d3ee;
+  --participant-dark:  #0891b2;
+  --participant-glow:  rgba(34, 211, 238, 0.20);
+  --participant-tint:  rgba(34, 211, 238, 0.08);
+
+  /* Exhibitor accent — Amber/Orange */
+  --exhibitor:         #f59e0b;
+  --exhibitor-dark:    #d97706;
+  --exhibitor-glow:    rgba(245, 158, 11, 0.20);
+  --exhibitor-tint:    rgba(245, 158, 11, 0.08);
+
+  /* Semantic */
+  --success:      #10b981;
+  --success-tint: rgba(16, 185, 129, 0.10);
+  --error:        #f43f5e;
+  --error-tint:   rgba(244, 63, 94, 0.10);
+  --warning:      #f59e0b;
+  --warning-tint: rgba(245, 158, 11, 0.10);
+
+  /* Typography */
+  --font-ui:   "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
   /* Layout */
-  --radius: 14px;
+  --radius-xs: 6px;
   --radius-sm: 10px;
+  --radius:    16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow:     0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-lg:  0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-glow: 0 0 40px var(--brand-glow);
+
+  /* Motion */
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:   cubic-bezier(0.4, 0, 1, 1);
+  --ease:      cubic-bezier(0.4, 0, 0.2, 1);
+  --duration:  200ms;
+  --duration-lg: 400ms;
 }
 
-* {
+/* ============================================
+   RESET
+   ============================================ */
+*, *::before, *::after {
   box-sizing: border-box;
-}
-
-html,
-body {
   margin: 0;
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+html, body {
+  height: 100%;
+}
+
 body {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  line-height: 1.5;
 }
 
 #root {
   min-height: 100vh;
 }
 
-button {
+button, input, select, textarea {
   font-family: inherit;
 }
 
-input,
-select {
-  font-family: inherit;
-}
+img, svg { display: block; }
 
+/* ============================================
+   FOCUS
+   ============================================ */
 :focus-visible {
-  outline: 3px solid var(--evergreen);
-  outline-offset: 2px;
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
 }
 
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-2); }
+::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* ============================================
+   BACKGROUND GRID PATTERN
+   ============================================ */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ============================================
+   ANIMATED GRADIENT ORBS
+   ============================================ */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.45;
+  animation: orb-drift 12s ease-in-out infinite alternate;
+}
+
+.orb-1 {
+  width: 500px; height: 500px;
+  top: -100px; left: -100px;
+  background: radial-gradient(circle, #4f46e5 0%, transparent 70%);
+}
+
+.orb-2 {
+  width: 400px; height: 400px;
+  bottom: -80px; right: -80px;
+  background: radial-gradient(circle, #0891b2 0%, transparent 70%);
+  animation-delay: -6s;
+}
+
+.orb-3 {
+  width: 300px; height: 300px;
+  top: 40%; left: 60%;
+  background: radial-gradient(circle, #7c3aed 0%, transparent 70%);
+  animation-delay: -3s;
+  opacity: 0.3;
+}
+
+@keyframes orb-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(30px, 20px) scale(1.05); }
+  100% { transform: translate(-20px, 40px) scale(0.95); }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.glass {
+  background: rgba(26, 32, 53, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--border);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--brand-2) 0%, #a78bfa 50%, var(--brand) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+  .orb { display: none; }
 }
