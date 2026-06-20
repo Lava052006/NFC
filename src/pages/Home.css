@@ -1,0 +1,11 @@
+.home-card {
+  margin-top: 60px;
+  text-align: center;
+}
+
+.home-link {
+  display: block;
+  text-decoration: none;
+  text-align: center;
+  margin-top: 12px;
+}

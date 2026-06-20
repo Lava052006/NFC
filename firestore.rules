@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /registrations/{regId} {
+      // Anyone can create a new registration (the public registration form).
+      // No update/delete on create — a person can only submit once per request.
+      allow create: if true;
+
+      // Anyone with the link can read a single registration by query —
+      // needed so the provisioning screen can look up a scanned QR's record.
+      // NOTE: this is permissive for phase 1 testing. Before going live with
+      // real attendee data, replace this with Firebase Auth-gated access
+      // (e.g. allow read, update: if request.auth != null && request.auth.token.staff == true)
+      // so random people with the project ID can't read the whole collection.
+      allow read: if true;
+
+      // Updates (ring assignment) are allowed for now since there's no real
+      // staff auth yet. Tighten this the same way as read above before
+      // production use with a real event's attendee data.
+      allow update: if true;
+
+      allow delete: if false;
+    }
+  }
+}
