@@ -1,0 +1,282 @@
+/* ============================================
+   PROFILE PAGE — Participant NFC card
+   ============================================ */
+
+.profile-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px 60px;
+  gap: 20px;
+}
+
+/* ---- Loading ---- */
+.profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.profile-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--participant);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Error card ---- */
+.profile-error-card {
+  max-width: 380px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: fade-up 0.5s var(--ease-out) both;
+}
+
+.profile-error-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.profile-error-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.profile-error-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.profile-btn {
+  margin-top: 8px;
+  padding: 12px 24px;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter var(--duration) var(--ease);
+}
+
+.profile-btn:hover { filter: brightness(1.15); }
+
+/* ============================================
+   PROFILE CARD
+   ============================================ */
+.profile-card {
+  width: 100%;
+  max-width: 400px;
+  border-radius: var(--radius-xl);
+  padding: 36px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  box-shadow: var(--shadow-lg), 0 0 60px var(--participant-glow);
+  border: 1px solid rgba(34, 211, 238, 0.15) !important;
+  animation: fade-up 0.5s var(--ease-out) both;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle top gradient line */
+.profile-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--participant), transparent);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+/* ---- NFC badge ---- */
+.profile-nfc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--participant);
+  background: var(--participant-tint);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 24px;
+}
+
+/* ---- Avatar ---- */
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--participant-dark), var(--participant));
+  color: #041f29;
+  font-size: 28px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  box-shadow: 0 0 30px var(--participant-glow);
+  flex-shrink: 0;
+}
+
+/* ---- Name & role ---- */
+.profile-name {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.profile-role {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+/* ---- Divider ---- */
+.profile-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 22px;
+}
+
+/* ---- Details list ---- */
+.profile-details {
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.profile-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.profile-detail-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--participant);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.profile-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-detail-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.profile-detail-value {
+  font-size: 14.5px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.profile-detail-link {
+  color: var(--participant);
+  text-decoration: none;
+  transition: opacity var(--duration) var(--ease);
+}
+
+.profile-detail-link:hover { opacity: 0.75; }
+
+/* ---- Registration ID chip ---- */
+.profile-reg-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  align-self: stretch;
+}
+
+.profile-reg-id-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.profile-reg-id-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+/* ---- Footnote ---- */
+.profile-footnote {
+  font-size: 12px;
+  color: var(--text-subtle);
+  text-align: center;
+}
+
+/* ---- Animations ---- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -5,9 +5,9 @@ import { db } from "../lib/firebase";
 import "./Provision.css";
 
 const STAFF_PASSWORD = import.meta.env.VITE_STAFF_PASSWORD || "changeme";
+const BASE_URL = import.meta.env.VITE_APP_BASE_URL || window.location.origin;
 const QR_REGION_ID = "qr-scan-region";
 
-// Step constants
 const STEP_SCAN = "scan";
 const STEP_CONFIRM_OVERWRITE = "confirm_overwrite";
 const STEP_TAP = "tap";
@@ -21,7 +21,7 @@ export default function Provision() {
   const [step, setStep] = useState(STEP_SCAN);
   const [scanError, setScanError] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [matchedDoc, setMatchedDoc] = useState(null); // { id, data }
+  const [matchedDoc, setMatchedDoc] = useState(null); // { id, data, writeUrl }
   const [nfcSupported] = useState(() => typeof window !== "undefined" && "NDEFReader" in window);
   const [nfcError, setNfcError] = useState("");
   const [nfcListening, setNfcListening] = useState(false);
@@ -29,7 +29,7 @@ export default function Provision() {
   const scannerRef = useRef(null);
   const abortControllerRef = useRef(null);
 
-  // ---- Auth ----
+  /* ---- Auth ---- */
   function handleLogin(e) {
     e.preventDefault();
     if (pwInput === STAFF_PASSWORD) {
@@ -40,28 +40,48 @@ export default function Provision() {
     }
   }
 
-  const handleQrDecoded = useCallback(async (registrationId) => {
+  /* ---- QR decode handler ---- */
+  const handleQrDecoded = useCallback(async (qrText) => {
     setScanError("");
     setLookupLoading(true);
     try {
+      // Expecting JSON: {"id":"EVT-A3K9MZ","type":"participant","v":1}
+      let payload;
+      try {
+        payload = JSON.parse(qrText);
+      } catch (err) {
+        // Fallback if it's just the old raw ID
+        payload = { id: qrText.trim(), type: "participant", v: 1 };
+      }
+
       const q = query(
         collection(db, "registrations"),
-        where("registrationId", "==", registrationId)
+        where("registrationId", "==", payload.id)
       );
       const snap = await getDocs(q);
 
       if (snap.empty) {
-        setScanError(`No registration found for "${registrationId}". Rescan or check the QR code.`);
+        setScanError(`No registration found for "${payload.id}". Rescan or check the QR code.`);
         setLookupLoading(false);
         return;
       }
 
       const docSnap = snap.docs[0];
       const data = docSnap.data();
-      setMatchedDoc({ id: docSnap.id, data });
+      
+      // Determine what URL gets written
+      let writeUrl = "";
+      if (data.type === "exhibitor") {
+        writeUrl = data.website || data.brochureUrl || "";
+      } else {
+        // Participant -> profile page link
+        writeUrl = `${BASE_URL}/p/${data.registrationId}`;
+      }
+
+      setMatchedDoc({ id: docSnap.id, data, writeUrl });
       setLookupLoading(false);
 
-      if (data.ringAssigned) {
+      if (data.nfcAssigned) {
         setStep(STEP_CONFIRM_OVERWRITE);
       } else {
         setStep(STEP_TAP);
@@ -73,7 +93,7 @@ export default function Provision() {
     }
   }, []);
 
-  // ---- QR scanning ----
+  /* ---- QR scanner setup ---- */
   useEffect(() => {
     if (!authed || step !== STEP_SCAN) return;
 
@@ -84,7 +104,7 @@ export default function Provision() {
     scanner
       .start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: 230 },
+        { fps: 10, qrbox: 250 },
         (decodedText) => {
           if (!isRunning) return;
           isRunning = false;
@@ -92,19 +112,19 @@ export default function Provision() {
           handleQrDecoded(decodedText.trim());
         },
         () => {
-          // per-frame "no QR found" — expected constantly, ignore
+          // ignore scan failures per frame
         }
       )
       .catch((err) => {
         console.error(err);
-        setScanError(
-          "Couldn't access the camera. Check camera permissions for this site and reload."
-        );
+        setScanError("Couldn't access the camera. Check camera permissions for this site and reload.");
       });
 
     return () => {
       isRunning = false;
-      scanner.stop().catch(() => {});
+      if (scanner.isScanning) {
+        scanner.stop().catch(() => {});
+      }
     };
   }, [authed, step, handleQrDecoded]);
 
@@ -115,26 +135,31 @@ export default function Provision() {
     setStep(STEP_SCAN);
   }
 
-  // ---- NFC tap ----
-  const assignRing = useCallback(
-    async (uid) => {
+  /* ---- NFC logic ---- */
+  const assignChip = useCallback(
+    async (serialNumber) => {
       if (!matchedDoc) return;
       try {
         await updateDoc(doc(db, "registrations", matchedDoc.id), {
-          ringUid: uid,
-          ringAssigned: true,
+          nfcUid: serialNumber || "manual_write",
+          nfcAssigned: true,
           assignedAt: serverTimestamp(),
         });
         setStep(STEP_SUCCESS);
       } catch (err) {
         console.error(err);
-        setNfcError("Saved the tag read, but couldn't update the record. Check your connection and try again.");
+        setNfcError("Wrote to chip successfully, but couldn't update Firestore. Check connection.");
       }
     },
     [matchedDoc]
   );
 
-  const startNfcRead = useCallback(async () => {
+  const startNfcWrite = useCallback(async () => {
+    if (!matchedDoc?.writeUrl) {
+      setNfcError("No valid URL to write to this chip.");
+      return;
+    }
+
     setNfcError("");
     try {
       const controller = new AbortController();
@@ -142,158 +167,179 @@ export default function Provision() {
 
       // eslint-disable-next-line no-undef
       const ndef = new NDEFReader();
-      await ndef.scan({ signal: controller.signal });
+      
       setNfcListening(true);
+      
+      // We will listen for a tap, and write the NDEF URI record.
+      // write() handles waiting for a tag. We can call write() directly.
+      await ndef.write({
+        records: [{ recordType: "url", data: matchedDoc.writeUrl }]
+      }, { signal: controller.signal });
 
-      ndef.onreading = (event) => {
-        // event.serialNumber is the tag UID, colon-separated hex
-        const uid = event.serialNumber;
-        if (!uid) {
-          setNfcError("Couldn't read a UID from that tag. Try tapping again.");
-          return;
-        }
-        controller.abort();
-        setNfcListening(false);
-        assignRing(uid);
-      };
+      // We successfully wrote. Wait, write() resolves when write is successful!
+      setNfcListening(false);
+      // We do not have the serialNumber from write() directly in some implementations, 
+      // but let's assign anyway.
+      assignChip("written_by_web_nfc");
 
-      ndef.onreadingerror = () => {
-        setNfcError("Couldn't read that tag. Hold the ring flat against the back of the phone and try again.");
-      };
     } catch (err) {
       console.error(err);
       setNfcListening(false);
       if (err.name === "NotAllowedError") {
         setNfcError("NFC permission was denied. Allow NFC access for this site and try again.");
       } else {
-        setNfcError("Couldn't start NFC scanning. Make sure NFC is turned on for this phone.");
+        setNfcError("Failed to write. Make sure the chip is held steady against the back of the phone.");
       }
     }
-  }, [assignRing]);
+  }, [assignChip, matchedDoc]);
 
   useEffect(() => {
     if (step !== STEP_TAP || !nfcSupported) return;
 
-    const timeoutId = setTimeout(() => {
-      startNfcRead();
-    }, 0);
+    // Auto-start NFC listening when arriving at TAP step and NFC is supported
+    startNfcWrite();
 
     return () => {
-      clearTimeout(timeoutId);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [step, nfcSupported, startNfcRead]);
+  }, [step, nfcSupported, startNfcWrite]);
 
-  function scanNext() {
-    setMatchedDoc(null);
-    setNfcError("");
-    setScanError("");
-    setNfcListening(false);
-    setStep(STEP_SCAN);
+  function handleManualConfirm() {
+    // For iOS/Desktop fallback using NFC Tools app
+    assignChip("manual_fallback");
   }
 
-  // ---- Render: login gate ----
+  /* ============================================================
+     RENDER
+     ============================================================ */
+
   if (!authed) {
     return (
-      <div className="page">
-        <div className="card login-card">
-          <span className="eyebrow">Staff access</span>
-          <h1 className="page-title">Provisioning station</h1>
-          <p className="page-sub">Enter the staff password to continue.</p>
-          <form onSubmit={handleLogin} className="form">
-            <label className="field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={pwInput}
-                onChange={(e) => setPwInput(e.target.value)}
-                autoFocus
-              />
-            </label>
-            {pwError && <div className="alert alert--error">{pwError}</div>}
-            <button type="submit" className="btn btn--primary">Continue</button>
+      <div className="prov-page">
+        <div className="prov-card glass">
+          <span className="prov-eyebrow">Staff Access</span>
+          <h1 className="prov-title">Provisioning Station</h1>
+          <p className="prov-sub">Enter the staff password to continue.</p>
+          <form onSubmit={handleLogin} className="prov-form">
+            <input
+              className="prov-input"
+              type="password"
+              placeholder="Password"
+              value={pwInput}
+              onChange={(e) => setPwInput(e.target.value)}
+              autoFocus
+            />
+            {pwError && <div className="prov-alert prov-alert--error">{pwError}</div>}
+            <button type="submit" className="prov-btn prov-btn--primary">Continue</button>
           </form>
         </div>
       </div>
     );
   }
 
-  // ---- Render: success ----
   if (step === STEP_SUCCESS) {
     return (
-      <div className="page">
-        <div className="card status-card status-card--success">
-          <div className="status-icon status-icon--success">✓</div>
-          <h1 className="status-title">Ring assigned</h1>
-          <p className="status-name">{matchedDoc?.data?.name}</p>
-          <p className="status-sub">{matchedDoc?.data?.company} &middot; {matchedDoc?.data?.category}</p>
-          <button className="btn btn--primary" onClick={scanNext}>Scan next person</button>
+      <div className="prov-page">
+        <div className="prov-card glass prov-card--success">
+          <div className="prov-success-icon">✓</div>
+          <h1 className="prov-success-title">Chip programmed</h1>
+          <p className="prov-success-name">
+            {matchedDoc?.data?.type === "exhibitor" ? matchedDoc?.data?.orgName : matchedDoc?.data?.name}
+          </p>
+          <p className="prov-success-sub">
+            Registration: {matchedDoc?.data?.registrationId}
+          </p>
+          <button className="prov-btn prov-btn--primary" onClick={rescan}>Scan next person</button>
         </div>
       </div>
     );
   }
 
-  // ---- Render: tap ring ----
   if (step === STEP_TAP || step === STEP_CONFIRM_OVERWRITE) {
+    const isExhibitor = matchedDoc?.data?.type === "exhibitor";
+    const displayName = isExhibitor ? matchedDoc?.data?.orgName : matchedDoc?.data?.name;
+    const displaySub = isExhibitor ? matchedDoc?.data?.website : matchedDoc?.data?.role;
+
     return (
-      <div className="page">
-        <div className="card">
+      <div className="prov-page">
+        <div className="prov-card glass">
           <StepIndicator activeStep={2} />
 
-          <div className="match-banner">
-            <span className="match-label">Matched</span>
-            <h2 className="match-name">{matchedDoc?.data?.name}</h2>
-            <p className="match-sub">{matchedDoc?.data?.company} &middot; {matchedDoc?.data?.category}</p>
+          <div className={`prov-match-banner prov-match-banner--${matchedDoc?.data?.type}`}>
+            <span className="prov-match-label">Matched {isExhibitor ? "Exhibitor" : "Participant"}</span>
+            <h2 className="prov-match-name">{displayName}</h2>
+            <p className="prov-match-sub">{displaySub}</p>
+          </div>
+
+          <div className="prov-write-preview">
+            <span className="prov-write-preview-label">Will write NDEF URI:</span>
+            <code className="prov-write-preview-url">{matchedDoc?.writeUrl}</code>
+            <p className="prov-write-preview-hint">
+              {isExhibitor 
+                ? "When tapped, chip will directly open this exhibitor's website."
+                : "When tapped, chip will open their digital profile card."}
+            </p>
           </div>
 
           {step === STEP_CONFIRM_OVERWRITE && (
-            <div className="alert alert--warning">
-              This person already has a ring assigned. Tapping a new ring will replace it.
-              <button className="btn btn--warning-confirm" onClick={() => setStep(STEP_TAP)}>
+            <div className="prov-alert prov-alert--warning">
+              This registration already has an NFC chip assigned. Tapping a new one will overwrite the record.
+              <button className="prov-btn prov-btn--warning" onClick={() => setStep(STEP_TAP)}>
                 Continue anyway
               </button>
-              <button className="btn btn--ghost" onClick={rescan}>Cancel, rescan instead</button>
             </div>
           )}
 
           {step === STEP_TAP && (
             <>
-              {!nfcSupported ? (
-                <div className="alert alert--error">
-                  NFC reading isn't supported on this device or browser. Open this page in
-                  Chrome on an Android phone with NFC turned on.
+              {nfcSupported ? (
+                <div className="prov-nfc-zone">
+                  <div className={`prov-pulse ${nfcListening ? "prov-pulse--active" : ""}`}>
+                    <NfcIcon />
+                  </div>
+                  <p className="prov-nfc-instruction">Hold the chip to the back of the phone</p>
+                  {nfcError && <div className="prov-alert prov-alert--error">{nfcError}</div>}
                 </div>
               ) : (
-                <>
-                  <div className="tap-zone">
-                    <div className={`tap-pulse ${nfcListening ? "tap-pulse--active" : ""}`}>📡</div>
-                    <p className="tap-instruction">Hold the ring against the back of the phone</p>
+                <div className="prov-manual-fallback">
+                  <div className="prov-alert prov-alert--warning">
+                    <strong>Web NFC not supported</strong><br/>
+                    Open <b>NFC Tools</b> app, select "Write", "Add a record", "URL/URI", and paste the link below.
                   </div>
-                  {nfcError && <div className="alert alert--error">{nfcError}</div>}
-                </>
+                  <button className="prov-btn prov-btn--secondary" onClick={() => {
+                    navigator.clipboard.writeText(matchedDoc?.writeUrl);
+                  }}>
+                    Copy URL
+                  </button>
+                  <button className="prov-btn prov-btn--primary" onClick={handleManualConfirm} style={{marginTop: 10}}>
+                    Mark as Written Manually
+                  </button>
+                </div>
               )}
-              <button className="btn btn--ghost" onClick={rescan}>Cancel, rescan instead</button>
             </>
           )}
+
+          <button className="prov-btn prov-btn--ghost" onClick={rescan}>Cancel, scan different QR</button>
         </div>
       </div>
     );
   }
 
-  // ---- Render: scan QR (default) ----
   return (
-    <div className="page">
-      <div className="card">
+    <div className="prov-page">
+      <div className="prov-card glass">
         <StepIndicator activeStep={1} />
-        <h1 className="page-title">Scan registration QR</h1>
-        <p className="page-sub">Point the camera at the visitor's or exhibitor's QR code.</p>
+        <h1 className="prov-title">Scan QR code</h1>
+        <p className="prov-sub">Point camera at attendee's QR to retrieve their profile.</p>
 
-        <div id={QR_REGION_ID} className="qr-scan-region" />
+        <div className="prov-scanner-wrap">
+          <div id={QR_REGION_ID} className="prov-scanner" />
+        </div>
 
-        {lookupLoading && <p className="loading-text">Looking up registration…</p>}
-        {scanError && <div className="alert alert--error">{scanError}</div>}
+        {lookupLoading && <div className="prov-loading">Looking up…</div>}
+        {scanError && <div className="prov-alert prov-alert--error">{scanError}</div>}
       </div>
     </div>
   );
@@ -301,16 +347,21 @@ export default function Provision() {
 
 function StepIndicator({ activeStep }) {
   return (
-    <div className="step-indicator">
-      <div className={`step ${activeStep === 1 ? "step--active" : "step--done"}`}>
-        <span className="step-icon">▭</span>
-        <span>Scan QR</span>
-      </div>
-      <div className="step-divider" />
-      <div className={`step ${activeStep === 2 ? "step--active" : ""}`}>
-        <span className="step-icon">◎</span>
-        <span>Tap ring</span>
-      </div>
+    <div className="prov-steps">
+      <div className={`prov-step ${activeStep >= 1 ? "prov-step--active" : ""}`}>1. Scan QR</div>
+      <div className="prov-step-divider" />
+      <div className={`prov-step ${activeStep >= 2 ? "prov-step--active" : ""}`}>2. Write Chip</div>
     </div>
+  );
+}
+
+function NfcIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 8.32a7.43 7.43 0 0 1 0 7.36" />
+      <path d="M9.46 6.21a11.76 11.76 0 0 1 0 11.58" />
+      <path d="M12.91 4.1a15.91 15.91 0 0 1 .01 15.8" />
+      <path d="M16.37 2a20.16 20.16 0 0 1 0 20" />
+    </svg>
   );
 }
