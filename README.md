@@ -91,7 +91,3 @@ This gives you a URL like `your-project.web.app` — open that on your Android p
 6. Ring is handed over. Done.
 
 If a QR is scanned for someone who already has a ring assigned, the app warns staff and asks for confirmation before overwriting — this handles lost-ring replacement without silently creating duplicate/orphaned links.
-
-## What's deliberately not built yet
-
-This is phase 1 only. Not included: exhibitor booth scanning/lead capture, any dashboard or reporting, real staff authentication (currently just a shared password), and anything related to writing data onto the NFC tags themselves. These come in later phases.
