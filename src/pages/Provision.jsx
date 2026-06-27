@@ -133,12 +133,11 @@ export default function Provision() {
           try {
             barcodeDetector = new BarcodeDetector({ formats: ["qr_code"] });
             useBarcodeDetector = true;
-            console.log("BarcodeDetector available and ready");
           } catch (err) {
-            console.log("BarcodeDetector available but QR format not supported, falling back to jsQR");
+
           }
         } else {
-          console.log("BarcodeDetector not available, using jsQR");
+          
         }
 
         // Faster scan interval - 30ms = ~33 scans/sec
