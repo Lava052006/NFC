@@ -418,6 +418,48 @@
   margin: 0;
 }
 
+/* ---- Credentials banner ---- */
+.reg-credentials-banner {
+  text-align: left;
+  background: var(--brand-tint);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--brand-2);
+}
+
+.reg-credentials-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.reg-credentials-banner p {
+  margin: 2px 0;
+  color: var(--text-muted);
+}
+
+.reg-password-display {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg-3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  user-select: all;
+}
+
+.reg-credentials-hint {
+  font-size: 11.5px;
+  color: var(--text-subtle);
+  margin-top: 4px;
+}
+
 /* ---- Success actions ---- */
 .success-actions {
   display: flex;

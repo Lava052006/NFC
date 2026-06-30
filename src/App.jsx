@@ -15,7 +15,7 @@ export default function App() {
         <Route path="/register" element={<Navigate to="/" replace />} />
         <Route path="/provision" element={<Provision />} />
         <Route path="/p/:id" element={<Profile />} />
-        {/* <Route path="/exhibit/:id" element={<Exhibitor />} /> */}
+        <Route path="/exhibit/:id" element={<Exhibitor />} />
       </Routes>
     </BrowserRouter>
   );

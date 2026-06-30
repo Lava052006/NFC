@@ -23,5 +23,19 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    match /scans/{exhibitorId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.authUid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.authUid;
+      allow update: if request.auth != null && request.auth.uid == resource.data.authUid;
+      allow delete: if false;
+
+      match /participants/{participantId} {
+        allow read: if request.auth != null && get(/databases/$(database)/documents/scans/$(exhibitorId)).data.authUid == request.auth.uid;
+        allow create: if request.auth != null && get(/databases/$(database)/documents/scans/$(exhibitorId)).data.authUid == request.auth.uid;
+        allow update: if request.auth != null && get(/databases/$(database)/documents/scans/$(exhibitorId)).data.authUid == request.auth.uid;
+        allow delete: if false;
+      }
+    }
   }
 }

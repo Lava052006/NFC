@@ -1,0 +1,599 @@
+/* ============================================
+   EXHIBITOR PAGE
+   ============================================ */
+
+.exh-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px 60px;
+}
+
+/* ---- Card (non-dashboard states) ---- */
+.exh-card {
+  width: 100%;
+  max-width: 480px;
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: fade-up 0.4s var(--ease-out) both;
+}
+
+.exh-error-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--error-tint);
+  border: 2px solid rgba(244, 63, 94, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--error);
+  margin-bottom: 8px;
+}
+
+.exh-error-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.exh-error-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+/* ---- Loading ---- */
+.exh-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.exh-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Eyebrow ---- */
+.exh-eyebrow {
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--exhibitor);
+  background: var(--exhibitor-tint);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+
+/* ---- Login ---- */
+.exh-login-header {
+  text-align: center;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.exh-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.exh-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.exh-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.exh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.exh-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.exh-input {
+  font-size: 15px;
+  font-weight: 400;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--text);
+  transition: border-color var(--duration) var(--ease);
+  width: 100%;
+}
+
+.exh-input::placeholder {
+  color: var(--text-subtle);
+}
+
+.exh-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-tint);
+}
+
+/* ---- Buttons ---- */
+.exh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--duration) var(--ease-out), filter var(--duration) var(--ease-out), opacity var(--duration) var(--ease);
+  width: 100%;
+}
+
+.exh-btn:active {
+  transform: scale(0.97);
+}
+
+.exh-btn--primary {
+  background: linear-gradient(135deg, var(--exhibitor-dark), var(--exhibitor));
+  color: #1a0e00;
+}
+
+.exh-btn--primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.exh-btn--secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.exh-btn--secondary:hover {
+  background: var(--border-hover);
+}
+
+.exh-btn--accent {
+  background: var(--brand);
+  color: white;
+  width: auto;
+}
+
+.exh-btn--accent:hover {
+  filter: brightness(1.1);
+}
+
+.exh-btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1.5px solid transparent;
+  width: auto;
+}
+
+.exh-btn--ghost:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* ---- Alerts ---- */
+.exh-alert {
+  font-size: 13.5px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+}
+
+.exh-alert--error {
+  background: var(--error-tint);
+  color: var(--error);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+.exh-alert--warning {
+  background: var(--warning-tint);
+  color: var(--warning);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* ============================================
+   DASHBOARD LAYOUT
+   ============================================ */
+.exh-dashboard {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fade-up 0.4s var(--ease-out) both;
+}
+
+/* ---- Header ---- */
+.exh-dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.exh-dash-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 4px;
+  line-height: 1.15;
+}
+
+.exh-dash-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.exh-dash-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ---- Reader Panel ---- */
+.exh-reader-panel {
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.exh-reader-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.exh-reader-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.exh-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.exh-badge--active {
+  background: var(--success-tint);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ---- Idle state ---- */
+.exh-reader-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.exh-reader-idle svg {
+  color: var(--exhibitor);
+  opacity: 0.6;
+}
+
+/* ---- Connecting ---- */
+.exh-reader-connecting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.exh-reader-connecting svg {
+  color: var(--brand);
+}
+
+/* ---- Ready / Listening ---- */
+.exh-reader-ready {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 24px;
+}
+
+.exh-pulse {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--brand-tint);
+  border: 2px solid var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+  box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+  animation: pulse-ring 1.5s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  70% { transform: scale(1); box-shadow: 0 0 0 24px rgba(99, 102, 241, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
+
+.exh-ready-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+}
+
+/* ---- Scan result ---- */
+.exh-scan-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.exh-scan-check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--success-tint);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--success);
+  margin-bottom: 4px;
+  animation: pop-in 0.3s var(--ease-out) both;
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.exh-scan-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.exh-scan-detail {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ---- Reader error ---- */
+.exh-reader-error {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 0;
+}
+
+/* ---- Manual fallback ---- */
+.exh-manual-fallback {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.exh-manual-summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+
+.exh-manual-summary:hover {
+  color: var(--text);
+}
+
+.exh-manual-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.exh-manual-form .exh-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.exh-manual-form .exh-btn {
+  width: auto;
+  white-space: nowrap;
+}
+
+/* ---- Scans Panel ---- */
+.exh-scans-panel {
+  border-radius: var(--radius-lg);
+  padding: 28px;
+}
+
+.exh-scans-header {
+  margin-bottom: 20px;
+}
+
+.exh-scans-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exh-scans-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+/* ---- Empty state ---- */
+.exh-scans-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.exh-scans-empty-hint {
+  font-size: 13px;
+  color: var(--text-subtle);
+  margin-top: 8px;
+}
+
+/* ---- Scans table ---- */
+.exh-scans-table-wrap {
+  overflow-x: auto;
+}
+
+.exh-scans-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.exh-scans-table thead {
+  border-bottom: 1px solid var(--border);
+}
+
+.exh-scans-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.exh-scans-table td {
+  padding: 12px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.exh-scans-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.exh-scans-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.exh-cell-name {
+  font-weight: 600;
+}
+
+.exh-cell-date {
+  color: var(--text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ---- Animations ---- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+  .exh-dash-header {
+    flex-direction: column;
+  }
+
+  .exh-dash-actions {
+    width: 100%;
+  }
+
+  .exh-dash-actions .exh-btn {
+    flex: 1;
+  }
+
+  .exh-manual-form {
+    flex-direction: column;
+  }
+
+  .exh-scans-table {
+    font-size: 13px;
+  }
+
+  .exh-scans-table th,
+  .exh-scans-table td {
+    padding: 8px 10px;
+  }
+}

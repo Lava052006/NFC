@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { QRCodeCanvas } from "qrcode.react";
-import { db } from "../lib/firebase";
+import { db, auth, createUserWithEmailAndPassword } from "../lib/firebase";
 import { generateRegistrationId, buildQrPayload } from "../lib/generateId";
 import "./Register.css";
 
@@ -28,6 +28,8 @@ const initialExhibitor = {
   brochureUrl: "",
   programs: "",
   tagline: "",
+  password: "",
+  confirmPassword: "",
 };
 
 const ROLES = ["Student", "Researcher", "Engineer", "Manager", "Educator", "Entrepreneur", "Other"];
@@ -44,7 +46,6 @@ export default function Register({ type }) {
   const [errorMsg, setErrorMsg]   = useState("");
   const [regId, setRegId]         = useState("");
   const [qrPayload, setQrPayload] = useState("");
-
   /* ---- helpers ---- */
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -60,6 +61,9 @@ export default function Register({ type }) {
         return "Website must start with http:// or https://";
       if (form.brochureUrl.trim() && !/^https?:\/\/.+/.test(form.brochureUrl.trim()))
         return "Brochure URL must start with http:// or https://";
+      if (!form.password)             return "Enter a password for your exhibitor account.";
+      if (form.password.length < 6)   return "Password must be at least 6 characters.";
+      if (form.password !== form.confirmPassword) return "Passwords do not match.";
     } else {
       if (!form.name.trim())          return "Enter your full name.";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Enter a valid email.";
@@ -86,7 +90,14 @@ export default function Register({ type }) {
 
     try {
       if (isExhibitor) {
+        const userCred = await createUserWithEmailAndPassword(
+          auth,
+          form.contactEmail.trim(),
+          form.password
+        );
+
         await addDoc(collection(db, "registrations"), {
+          authUid:         userCred.user.uid,
           registrationId:  id,
           type:            "exhibitor",
           orgName:         form.orgName.trim(),
@@ -210,6 +221,17 @@ export default function Register({ type }) {
                 )}
               </div>
             </div>
+
+            {isExhibitor && (
+              <div className="reg-credentials-banner">
+                <strong>Login credentials saved</strong>
+                <p>Email: {form.contactEmail}</p>
+                <p>Password: <code className="reg-password-display">{form.password}</code></p>
+                <p className="reg-credentials-hint">
+                  Use these to sign in to your exhibitor dashboard at /exhibit/{regId}
+                </p>
+              </div>
+            )}
 
             <div className="success-actions">
               <button className={`reg-btn reg-btn--primary reg-btn--${type}`} onClick={downloadQr}>
@@ -511,6 +533,37 @@ function ExhibitorForm({ form, update }) {
             onChange={(e) => update("contactEmail", e.target.value)}
             placeholder="admissions@university.edu"
             autoComplete="email"
+            required
+          />
+        </Field>
+      </fieldset>
+
+      <fieldset className="reg-fieldset">
+        <legend className="reg-fieldset-legend">
+          Account Password
+          <span className="reg-fieldset-note">Used to sign in to your dashboard</span>
+        </legend>
+
+        <Field label="Password" required hint="At least 6 characters.">
+          <input
+            id="field-password"
+            type="password"
+            value={form.password}
+            onChange={(e) => update("password", e.target.value)}
+            placeholder="Create a password"
+            autoComplete="new-password"
+            required
+          />
+        </Field>
+
+        <Field label="Confirm password" required>
+          <input
+            id="field-confirm-password"
+            type="password"
+            value={form.confirmPassword}
+            onChange={(e) => update("confirmPassword", e.target.value)}
+            placeholder="Re-enter your password"
+            autoComplete="new-password"
             required
           />
         </Field>
